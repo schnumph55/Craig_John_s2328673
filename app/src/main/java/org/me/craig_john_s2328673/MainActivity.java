@@ -27,6 +27,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.me.craig_john_s2328673.data.SituationParser;
+import org.me.craig_john_s2328673.model.Situation;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -37,6 +39,7 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.URL;
 import java.net.HttpURLConnection;
+import java.util.ArrayList;
 import java.util.Base64;
 
 
@@ -58,7 +61,9 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
+
         });
+
         // Set up the raw links to the graphical components
         rawDataDisplay = (TextView)findViewById(R.id.rawDataDisplay);
         startButton = (Button)findViewById(R.id.startButton);
@@ -73,6 +78,40 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         } catch (PackageManager.NameNotFoundException e) {
             Log.e("Keys", "Could not read API keys", e);
         }
+        testParser();
+    }
+
+    private void testParser() {
+        int[] files = { R.raw.unplanned_example1,
+                R.raw.unplanned_example2, R.raw.unplanned_example3,
+                R.raw.roadworks_example1,
+                R.raw.roadworks_example2, R.raw.roadworks_example3 };
+        SituationParser parser = new SituationParser();
+        for (int id : files) {
+            boolean roadworks = getResources().getResourceEntryName(id).startsWith("roadworks");
+            ArrayList<Situation> list = parser.parse(readRaw(id), roadworks);
+            Log.d("ParserTest", getResources().getResourceEntryName(id) + " → " + list.size());
+            for (int i = 0; i < Math.min(2, list.size()); i++) {
+                Situation s = list.get(i);
+                Log.d("ParserTest", "   " + s
+                        + " | start=" + s.getValidity().getStart()
+                        + " | end=" + s.getValidity().getEnd()
+                        + " | days=" + s.getValidity().getDurationDays()
+                        + " | " + s.getLocations());
+            }
+        }
+    }
+
+    private String readRaw(int id) {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader r = new BufferedReader(
+                new InputStreamReader(getResources().openRawResource(id)))) {
+            String line;
+            while ((line = r.readLine()) != null) sb.append(line).append('\n');
+        } catch (IOException e) {
+            Log.e("ParserTest", "Could not read raw file", e);
+        }
+        return sb.toString();
     }
 
     public void onClick(View aview)
@@ -137,6 +176,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                 //YOUR PARSING HERE!!!
 
 
+
             } catch (XmlPullParserException e) {
                 Log.e("Parsing","EXCEPTION" + e);
                 //throw new RuntimeException(e);
@@ -153,6 +193,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                     rawDataDisplay.setText(result);
                 }
             });
+
+
         }
 
     }
