@@ -13,6 +13,7 @@
 
 package org.me.craig_john_s2328673;
 
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -44,8 +45,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
     private Button startButton;
 
     //DOWNLOADING FROM TRAFFIC SCOTLAND
-    final String clientId = "YOUR_ID_HERE";
-    final String clientKey = "YOUR_KEY_HERE";
+    private String clientId = "";
+    private String clientKey = "";
     final String unplannedEventsURL = "https://datex2.trafficscotland.org/rest/2.3/publications/UnplannedEvents/Content.xml";
 
     @Override
@@ -63,8 +64,15 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         startButton = (Button)findViewById(R.id.startButton);
         startButton.setOnClickListener(this);
 
-        // More Code goes here
-
+        // Read API Keys
+        try {
+            Bundle meta = getPackageManager()
+                    .getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA).metaData;
+            clientId = meta.getString("org.me.craig_john_s2328673.TS_CLIENT_ID");
+            clientKey = meta.getString("org.me.craig_john_s2328673.TS_CLIENT_KEY");
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e("Keys", "Could not read API keys", e);
+        }
     }
 
     public void onClick(View aview)

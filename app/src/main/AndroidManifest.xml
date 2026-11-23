@@ -13,6 +13,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Craig_John_s2328673">
+        <meta-data
+            android:name="org.me.craig_john_s2328673.TS_CLIENT_ID"
+            android:value="${TS_CLIENT_ID}" />
+        <meta-data
+            android:name="org.me.craig_john_s2328673.TS_CLIENT_KEY"
+            android:value="${TS_CLIENT_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
