@@ -13,44 +13,25 @@
 
 package org.me.craig_john_s2328673;
 
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.view.View.OnClickListener;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
-import org.me.craig_john_s2328673.data.SituationParser;
 import org.me.craig_john_s2328673.model.Situation;
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlPullParserFactory;
+import org.me.craig_john_s2328673.viewmodel.TrafficViewModel;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.net.URL;
-import java.net.HttpURLConnection;
-import java.util.ArrayList;
-import java.util.Base64;
+import java.util.List;
 
-
-public class MainActivity extends AppCompatActivity implements OnClickListener {
+public class MainActivity extends AppCompatActivity {
     private TextView rawDataDisplay;
-    private Button startButton;
-
-    //DOWNLOADING FROM TRAFFIC SCOTLAND
-    private String clientId = "";
-    private String clientKey = "";
-    final String unplannedEventsURL = "https://datex2.trafficscotland.org/rest/2.3/publications/UnplannedEvents/Content.xml";
+    private TrafficViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,142 +42,28 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
-
         });
 
-        // Set up the raw links to the graphical components
-        rawDataDisplay = (TextView)findViewById(R.id.rawDataDisplay);
-        startButton = (Button)findViewById(R.id.startButton);
-        startButton.setOnClickListener(this);
+        rawDataDisplay = findViewById(R.id.rawDataDisplay);
+        Button startButton = findViewById(R.id.startButton);
+        startButton.setText("Refresh now");
 
-        // Read API Keys
-        try {
-            Bundle meta = getPackageManager()
-                    .getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA).metaData;
-            clientId = meta.getString("org.me.craig_john_s2328673.TS_CLIENT_ID");
-            clientKey = meta.getString("org.me.craig_john_s2328673.TS_CLIENT_KEY");
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.e("Keys", "Could not read API keys", e);
-        }
-        testParser();
+        viewModel = new ViewModelProvider(this).get(TrafficViewModel.class);
+        startButton.setOnClickListener(v -> viewModel.refreshNow());
+
+        viewModel.getStatus().observe(this, s -> updateDisplay());
+        viewModel.getIncidents().observe(this, list -> updateDisplay());
+        viewModel.getRoadworks().observe(this, list -> updateDisplay());
     }
 
-    private void testParser() {
-        int[] files = { R.raw.unplanned_example1,
-                R.raw.unplanned_example2, R.raw.unplanned_example3,
-                R.raw.roadworks_example1,
-                R.raw.roadworks_example2, R.raw.roadworks_example3 };
-        SituationParser parser = new SituationParser();
-        for (int id : files) {
-            boolean roadworks = getResources().getResourceEntryName(id).startsWith("roadworks");
-            ArrayList<Situation> list = parser.parse(readRaw(id), roadworks);
-            Log.d("ParserTest", getResources().getResourceEntryName(id) + " → " + list.size());
-            for (int i = 0; i < Math.min(2, list.size()); i++) {
-                Situation s = list.get(i);
-                Log.d("ParserTest", "   " + s
-                        + " | start=" + s.getValidity().getStart()
-                        + " | end=" + s.getValidity().getEnd()
-                        + " | days=" + s.getValidity().getDurationDays()
-                        + " | " + s.getLocations());
-            }
-        }
-    }
-
-    private String readRaw(int id) {
+    private void updateDisplay() {
+        List<Situation> inc = viewModel.getIncidents().getValue();
+        List<Situation> rw = viewModel.getRoadworks().getValue();
         StringBuilder sb = new StringBuilder();
-        try (BufferedReader r = new BufferedReader(
-                new InputStreamReader(getResources().openRawResource(id)))) {
-            String line;
-            while ((line = r.readLine()) != null) sb.append(line).append('\n');
-        } catch (IOException e) {
-            Log.e("ParserTest", "Could not read raw file", e);
-        }
-        return sb.toString();
+        sb.append(viewModel.getStatus().getValue()).append("\n\n");
+        sb.append("Incidents: ").append(inc == null ? 0 : inc.size()).append("\n");
+        sb.append("Roadworks: ").append(rw == null ? 0 : rw.size()).append("\n\n");
+        if (inc != null) for (Situation s : inc) sb.append("• ").append(s).append("\n\n");
+        rawDataDisplay.setText(sb.toString());
     }
-
-    public void onClick(View aview)
-    {
-        startProgress();
-    }
-
-    public void startProgress()
-    {
-        // Run network access on a separate thread;
-        new Thread(new Task(unplannedEventsURL)).start();
-    } //
-
-    // Need separate thread to access the internet resource over network
-    // Other neater solutions should be adopted in later iterations.
-    private class Task implements Runnable
-    {
-        private String result="";
-        private String myurl;
-        BufferedReader in = null;
-        String inputLine = "";
-        public Task(String aurl){
-            myurl = aurl;
-        }
-        @Override
-        public void run(){
-            Log.d("MyTask","in run");
-            try {
-                URL url = new URL(myurl);
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                //ADD AUTHORISATION (string with clientIID:clientKey)
-                urlConnection.setRequestProperty("Authorization",Base64.getEncoder().encodeToString((clientId + ":" + clientKey).getBytes()));
-                try {
-                    in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-                    while ((inputLine = in.readLine()) != null){
-                        result = result + inputLine;
-                    }
-                    in.close();
-                } catch (IOException e) {
-                    String error = urlConnection.getErrorStream().toString();
-                    Log.e("urlConnection", "ioexception");
-                }
-                finally {
-                    urlConnection.disconnect();
-                }
-            } catch (IOException e) {
-                Log.e("URL", "ioexception");
-            }
-
-            //Clean up any leading garbage characters
-            int i = result.indexOf("<?"); //initial tag
-            result = result.substring(i);
-
-            // Now that you have the xml data into result, you can parse it
-            try {
-                XmlPullParserFactory factory =
-                        XmlPullParserFactory.newInstance();
-                factory.setNamespaceAware(true);
-                XmlPullParser xpp = factory.newPullParser();
-                xpp.setInput( new StringReader( result ) );
-
-                //YOUR PARSING HERE!!!
-
-
-
-            } catch (XmlPullParserException e) {
-                Log.e("Parsing","EXCEPTION" + e);
-                //throw new RuntimeException(e);
-            }
-
-            // Now update the TextView to display raw XML data
-            // Probably not the best way to update TextView
-            // but we are just getting started !
-
-            MainActivity.this.runOnUiThread(new Runnable()
-            {
-                public void run() {
-                    Log.d("UI thread", "I am the UI thread");
-                    rawDataDisplay.setText(result);
-                }
-            });
-
-
-        }
-
-    }
-
 }
