@@ -14,24 +14,34 @@
 package org.me.craig_john_s2328673;
 
 import android.os.Bundle;
-import android.widget.Button;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
-import org.me.craig_john_s2328673.model.Situation;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.navigation.NavigationBarView;
+import org.me.craig_john_s2328673.ui.DetailFragment;
+import org.me.craig_john_s2328673.ui.MapFragment;
+import org.me.craig_john_s2328673.ui.NearbyFragment;
+import org.me.craig_john_s2328673.ui.SearchFragment;
+import org.me.craig_john_s2328673.ui.SituationListFragment;
 import org.me.craig_john_s2328673.viewmodel.TrafficViewModel;
 
-import java.util.List;
-
 public class MainActivity extends AppCompatActivity {
-    private TextView rawDataDisplay;
+
     private TrafficViewModel viewModel;
+    private NavigationBarView bottomNav;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,26 +54,58 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        rawDataDisplay = findViewById(R.id.rawDataDisplay);
-        Button startButton = findViewById(R.id.startButton);
-        startButton.setText("Refresh now");
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         viewModel = new ViewModelProvider(this).get(TrafficViewModel.class);
-        startButton.setOnClickListener(v -> viewModel.refreshNow());
+        TextView statusText = findViewById(R.id.statusText);
+        viewModel.getStatus().observe(this, statusText::setText);
 
-        viewModel.getStatus().observe(this, s -> updateDisplay());
-        viewModel.getIncidents().observe(this, list -> updateDisplay());
-        viewModel.getRoadworks().observe(this, list -> updateDisplay());
+        bottomNav = findViewById(R.id.bottomNav);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_list) { showTab(new SituationListFragment()); return true; }
+            if (id == R.id.nav_search) { showTab(new SearchFragment()); return true; }
+            if (id == R.id.nav_nearby) { showTab(new NearbyFragment()); return true; }
+            if (id == R.id.nav_map) { showTab(new MapFragment()); return true; }
+            return false;
+        });
+
+        if (savedInstanceState == null) {
+            showTab(new SituationListFragment());
+        }
     }
 
-    private void updateDisplay() {
-        List<Situation> inc = viewModel.getIncidents().getValue();
-        List<Situation> rw = viewModel.getRoadworks().getValue();
-        StringBuilder sb = new StringBuilder();
-        sb.append(viewModel.getStatus().getValue()).append("\n\n");
-        sb.append("Incidents: ").append(inc == null ? 0 : inc.size()).append("\n");
-        sb.append("Roadworks: ").append(rw == null ? 0 : rw.size()).append("\n\n");
-        if (inc != null) for (Situation s : inc) sb.append("• ").append(s).append("\n\n");
-        rawDataDisplay.setText(sb.toString());
+    private void showTab(Fragment fragment) {
+        FragmentManager fm = getSupportFragmentManager();
+        fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        fm.beginTransaction().replace(R.id.fragment_container, fragment).commit();
+    }
+
+    public void showDetail() {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new DetailFragment())
+                .addToBackStack("detail")
+                .commit();
+    }
+
+    public void openMap() {
+        bottomNav.setSelectedItemId(R.id.nav_map);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_refresh) {
+            viewModel.refreshNow();
+            Toast.makeText(this, "Refreshing…", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

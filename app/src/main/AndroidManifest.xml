@@ -19,6 +19,9 @@
         <meta-data
             android:name="org.me.craig_john_s2328673.TS_CLIENT_KEY"
             android:value="${TS_CLIENT_KEY}" />
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

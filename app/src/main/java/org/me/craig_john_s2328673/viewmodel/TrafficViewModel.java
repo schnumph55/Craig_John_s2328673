@@ -22,11 +22,13 @@ import java.util.concurrent.TimeUnit;
 
 public class TrafficViewModel extends AndroidViewModel {
 
-    private static final long REFRESH_MINUTES = 60;
+    private static final long REFRESH_MINUTES = 1;
 
     private final TrafficRepository repository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
+    private final MutableLiveData<List<Situation>> searchResults = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Situation>> nearbyResults = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Situation>> mapSituations = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<Situation>> incidents = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<Situation>> roadworks = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
@@ -68,6 +70,60 @@ public class TrafficViewModel extends AndroidViewModel {
     public LiveData<String> getStatus() { return status; }
     public LiveData<Situation> getSelected() { return selected; }
     public void select(Situation s) { selected.setValue(s); }
+
+    public List<Situation> getAll() {
+        List<Situation> all = new ArrayList<>();
+        if (incidents.getValue() != null) all.addAll(incidents.getValue());
+        if (roadworks.getValue() != null) all.addAll(roadworks.getValue());
+        return all;
+    }
+
+    public List<String> getRoadNames() {
+        java.util.TreeSet<String> names = new java.util.TreeSet<>();
+        for (Situation s : getAll()) {
+            if (s.getRoadName() != null && !s.getRoadName().equals("Unknown")) names.add(s.getRoadName());
+        }
+        return new ArrayList<>(names);
+    }
+
+    public void searchByRoad(String query) {
+        String q = query == null ? "" : query.trim().toUpperCase(java.util.Locale.UK);
+        List<Situation> results = new ArrayList<>();
+        if (!q.isEmpty()) {
+            for (Situation s : getAll()) {
+                if (matchesRoad(s, q)) results.add(s);
+            }
+        }
+        searchResults.setValue(results);
+    }
+
+    private boolean matchesRoad(Situation s, String q) {
+        if (q.equalsIgnoreCase(s.getRoadName())) return true;
+        for (org.me.craig_john_s2328673.model.Location l : s.getLocations()) {
+            if (q.equalsIgnoreCase(l.getRoadName())) return true;
+        }
+        if (s.getComment() == null) return false;
+        String c = " " + s.getComment().toUpperCase(java.util.Locale.UK)
+                .replace(",", " ").replace(".", " ").replace("/", " ") + " ";
+        return c.contains(" " + q + " ");
+    }
+
+    public void searchNearby(double lat, double lon, double radiusKm) {
+        List<Situation> results = new ArrayList<>();
+        for (Situation s : getAll()) {
+            if (s.distanceKmTo(lat, lon) <= radiusKm) results.add(s);
+        }
+        results.sort(java.util.Comparator.comparingDouble(s -> s.distanceKmTo(lat, lon)));
+        nearbyResults.setValue(results);
+    }
+
+    public void showOnMap(List<Situation> list) {
+        mapSituations.setValue(list == null ? new ArrayList<>() : new ArrayList<>(list));
+    }
+
+    public LiveData<List<Situation>> getSearchResults() { return searchResults; }
+    public LiveData<List<Situation>> getNearbyResults() { return nearbyResults; }
+    public LiveData<List<Situation>> getMapSituations() { return mapSituations; }
 
     @Override
     protected void onCleared() {

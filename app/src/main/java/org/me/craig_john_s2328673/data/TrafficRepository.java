@@ -57,6 +57,8 @@ public class TrafficRepository {
         String xml;
         try {
             xml = downloader.download(url);
+            Log.d(TAG, "Raw feed " + url.substring(url.indexOf("publications/") + 13)
+                    + " contains " + (xml.split("<situation ").length - 1) + " <situation> elements");
             writeFile(cacheFile, xml);
         } catch (IOException e) {
             Log.w(TAG, "Download failed (" + e.getMessage() + "), using offline copy");
@@ -69,7 +71,6 @@ public class TrafficRepository {
         }
         return parser.parse(xml, roadworks);
     }
-
     private void writeFile(String name, String data) {
         try (FileOutputStream out = context.openFileOutput(name, Context.MODE_PRIVATE)) {
             out.write(data.getBytes(StandardCharsets.UTF_8));

@@ -67,6 +67,17 @@ public class Situation {
         return null;
     }
 
+    public double distanceKmTo(double lat, double lon) {
+        double best = Double.MAX_VALUE;
+        float[] result = new float[1];
+        for (Location l : locations) {
+            if (l.getLatitude() == 0 && l.getLongitude() == 0) continue;
+            android.location.Location.distanceBetween(lat, lon, l.getLatitude(), l.getLongitude(), result);
+            best = Math.min(best, result[0] / 1000.0);
+        }
+        return best;
+    }
+
     @Override
     public String toString() {
         return recordType + " [" + subType + "] " + roadName + ": " + comment;

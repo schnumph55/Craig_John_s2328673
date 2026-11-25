@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RadioGroup
+        android:id="@+id/filterGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+        <RadioButton android:id="@+id/filterAll" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="All" android:checked="true" />
+        <RadioButton android:id="@+id/filterIncidents" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Incidents" />
+        <RadioButton android:id="@+id/filterRoadworks" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Roadworks" />
+    </RadioGroup>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="4dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Roadworks: " android:textSize="12sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" ≤ 7 days " android:textSize="12sp" android:textColor="#FFFFFF"
+            android:background="#2E7D32" android:layout_marginEnd="4dp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" ≤ 30 days " android:textSize="12sp" android:textColor="#000000"
+            android:background="#F9A825" android:layout_marginEnd="4dp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" longer " android:textSize="12sp" android:textColor="#FFFFFF"
+            android:background="#C62828" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/countText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        android:textSize="12sp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>
