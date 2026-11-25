@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TrafficViewModel extends AndroidViewModel {
 
-    private static final long REFRESH_MINUTES = 1;
+    private static final long REFRESH_MINUTES = 60;
 
     private final TrafficRepository repository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
